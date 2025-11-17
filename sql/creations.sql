@@ -136,3 +136,57 @@ ADD CONSTRAINT bills_congress_number_unique UNIQUE (official_bill_number, congre
 ALTER TABLE votes
 ADD COLUMN vote_category VARCHAR(50);
 */
+
+-- Add sponsor_id column to bills table
+/*
+ALTER TABLE bills
+ADD COLUMN sponsor_id INTEGER,
+ADD CONSTRAINT fk_bills_sponsor 
+    FOREIGN KEY (sponsor_id) 
+    REFERENCES politicians(politician_id);
+*/
+
+-- Create bill_cosponsors junction table to track cosponsor relationships
+-- This is a many-to-many relationship: one bill has many cosponsors, one politician cosponsors many bills
+/*
+CREATE TABLE bill_cosponsors (
+    cosponsor_id SERIAL PRIMARY KEY,
+    bill_id INTEGER NOT NULL,
+    politician_id INTEGER NOT NULL,
+    sponsorship_date DATE,
+    is_original_cosponsor BOOLEAN DEFAULT FALSE,
+    
+    -- Foreign key constraints
+    CONSTRAINT fk_bill_cosponsors_bill 
+        FOREIGN KEY (bill_id) 
+        REFERENCES bills(bill_id) 
+        ON DELETE CASCADE,
+    CONSTRAINT fk_bill_cosponsors_politician 
+        FOREIGN KEY (politician_id) 
+        REFERENCES politicians(politician_id) 
+        ON DELETE CASCADE,
+    
+    -- Prevent duplicate cosponsors for the same bill
+    CONSTRAINT unique_bill_politician UNIQUE (bill_id, politician_id)
+);
+
+-- Create indexes for faster lookups
+CREATE INDEX idx_bill_cosponsors_bill ON bill_cosponsors(bill_id);
+CREATE INDEX idx_bill_cosponsors_politician ON bill_cosponsors(politician_id);
+CREATE INDEX idx_bill_cosponsors_date ON bill_cosponsors(sponsorship_date);
+*/
+
+
+-- Create update_log table to track data updates
+CREATE TABLE update_log (
+    log_id SERIAL PRIMARY KEY,
+    table_name VARCHAR(50),
+    last_update TIMESTAMP,
+    records_updated INTEGER,
+    status VARCHAR(20)
+);
+
+
+
+
+

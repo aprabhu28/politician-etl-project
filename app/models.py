@@ -29,6 +29,8 @@ class Politician(Base):
     # Relationships
     votes = relationship("Vote", back_populates="politician")
     donations = relationship("Donation", back_populates="politician")
+    sponsored_bills = relationship("Bill", back_populates="sponsor", foreign_keys="Bill.sponsor_id")
+    cosponsored_bills = relationship("BillCosponsor", back_populates="politician")
 
 
 class Donor(Base):
@@ -73,9 +75,27 @@ class Bill(Base):
     date_introduced = Column(Date)
     status = Column(Text)
     bill_type = Column(String(10))
+    sponsor_id = Column(Integer, ForeignKey("politicians.politician_id"))
     
     # Relationships
     votes = relationship("Vote", back_populates="bill")
+    sponsor = relationship("Politician", back_populates="sponsored_bills", foreign_keys=[sponsor_id])
+    cosponsors = relationship("BillCosponsor", back_populates="bill")
+
+
+class BillCosponsor(Base):
+    """Model for the bill_cosponsors junction table."""
+    __tablename__ = "bill_cosponsors"
+
+    cosponsor_id = Column(Integer, primary_key=True, autoincrement=True)
+    bill_id = Column(Integer, ForeignKey("bills.bill_id"), nullable=False)
+    politician_id = Column(Integer, ForeignKey("politicians.politician_id"), nullable=False)
+    sponsorship_date = Column(Date)
+    is_original_cosponsor = Column(Boolean, default=False)
+    
+    # Relationships
+    bill = relationship("Bill", back_populates="cosponsors")
+    politician = relationship("Politician", back_populates="cosponsored_bills")
 
 
 class Vote(Base):

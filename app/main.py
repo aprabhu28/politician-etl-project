@@ -8,7 +8,7 @@ from typing import List, Optional
 from datetime import date
 
 from .database import get_db
-from .models import Politician, Donor, Donation, Bill, Vote
+from .models import Politician, Donor, Donation, Bill, Vote, BillCosponsor
 
 # Create FastAPI application
 app = FastAPI(
@@ -330,6 +330,179 @@ def get_votes(
                 "date": v.date.isoformat() if v.date else None
             }
             for v in votes
+        ]
+    }
+
+
+@app.get("/politicians/{politician_id}/sponsored-bills")
+def get_politician_sponsored_bills(
+    politician_id: int,
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000)
+):
+    """
+    Get all bills sponsored (introduced) by a specific politician.
+    """
+    # Verify politician exists
+    politician = db.query(Politician).filter(Politician.politician_id == politician_id).first()
+    if not politician:
+        raise HTTPException(status_code=404, detail=f"Politician {politician_id} not found")
+    
+    query = db.query(Bill).filter(Bill.sponsor_id == politician_id)
+    total = query.count()
+    bills = query.offset(skip).limit(limit).all()
+    
+    return {
+        "politician_id": politician_id,
+        "politician_name": f"{politician.first_name} {politician.last_name}",
+        "total_sponsored": total,
+        "skip": skip,
+        "limit": limit,
+        "count": len(bills),
+        "sponsored_bills": [
+            {
+                "bill_id": b.bill_id,
+                "official_bill_number": b.official_bill_number,
+                "congress": b.congress,
+                "title": b.title,
+                "date_introduced": b.date_introduced.isoformat() if b.date_introduced else None,
+                "status": b.status,
+                "bill_type": b.bill_type
+            }
+            for b in bills
+        ]
+    }
+
+
+@app.get("/politicians/{politician_id}/cosponsored-bills")
+def get_politician_cosponsored_bills(
+    politician_id: int,
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    original_only: Optional[bool] = Query(None, description="Filter for original cosponsors only")
+):
+    """
+    Get all bills cosponsored by a specific politician.
+    """
+    # Verify politician exists
+    politician = db.query(Politician).filter(Politician.politician_id == politician_id).first()
+    if not politician:
+        raise HTTPException(status_code=404, detail=f"Politician {politician_id} not found")
+    
+    query = db.query(BillCosponsor).filter(BillCosponsor.politician_id == politician_id)
+    
+    if original_only is not None:
+        query = query.filter(BillCosponsor.is_original_cosponsor == original_only)
+    
+    total = query.count()
+    cosponsorships = query.offset(skip).limit(limit).all()
+    
+    return {
+        "politician_id": politician_id,
+        "politician_name": f"{politician.first_name} {politician.last_name}",
+        "total_cosponsored": total,
+        "skip": skip,
+        "limit": limit,
+        "count": len(cosponsorships),
+        "cosponsored_bills": [
+            {
+                "bill_id": c.bill.bill_id,
+                "official_bill_number": c.bill.official_bill_number,
+                "congress": c.bill.congress,
+                "title": c.bill.title,
+                "sponsorship_date": c.sponsorship_date.isoformat() if c.sponsorship_date else None,
+                "is_original_cosponsor": c.is_original_cosponsor,
+                "bill_status": c.bill.status
+            }
+            for c in cosponsorships
+        ]
+    }
+
+
+@app.get("/bills/{bill_id}/sponsor")
+def get_bill_sponsor(
+    bill_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get the primary sponsor of a bill.
+    """
+    bill = db.query(Bill).filter(Bill.bill_id == bill_id).first()
+    
+    if not bill:
+        raise HTTPException(status_code=404, detail=f"Bill {bill_id} not found")
+    
+    if not bill.sponsor_id:
+        return {
+            "bill_id": bill_id,
+            "official_bill_number": bill.official_bill_number,
+            "sponsor": None,
+            "message": "No sponsor information available"
+        }
+    
+    sponsor = bill.sponsor
+    
+    return {
+        "bill_id": bill_id,
+        "official_bill_number": bill.official_bill_number,
+        "title": bill.title,
+        "sponsor": {
+            "politician_id": sponsor.politician_id,
+            "congress_id": sponsor.congress_id,
+            "name": f"{sponsor.first_name} {sponsor.last_name}",
+            "party": sponsor.party,
+            "state": sponsor.state,
+            "chamber": sponsor.chamber
+        }
+    }
+
+
+@app.get("/bills/{bill_id}/cosponsors")
+def get_bill_cosponsors(
+    bill_id: int,
+    db: Session = Depends(get_db),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    original_only: Optional[bool] = Query(None, description="Filter for original cosponsors only")
+):
+    """
+    Get all cosponsors of a specific bill.
+    """
+    bill = db.query(Bill).filter(Bill.bill_id == bill_id).first()
+    
+    if not bill:
+        raise HTTPException(status_code=404, detail=f"Bill {bill_id} not found")
+    
+    query = db.query(BillCosponsor).filter(BillCosponsor.bill_id == bill_id)
+    
+    if original_only is not None:
+        query = query.filter(BillCosponsor.is_original_cosponsor == original_only)
+    
+    total = query.count()
+    cosponsorships = query.offset(skip).limit(limit).all()
+    
+    return {
+        "bill_id": bill_id,
+        "official_bill_number": bill.official_bill_number,
+        "title": bill.title,
+        "total_cosponsors": total,
+        "skip": skip,
+        "limit": limit,
+        "count": len(cosponsorships),
+        "cosponsors": [
+            {
+                "politician_id": c.politician.politician_id,
+                "congress_id": c.politician.congress_id,
+                "name": f"{c.politician.first_name} {c.politician.last_name}",
+                "party": c.politician.party,
+                "state": c.politician.state,
+                "chamber": c.politician.chamber,
+                "sponsorship_date": c.sponsorship_date.isoformat() if c.sponsorship_date else None,
+                "is_original_cosponsor": c.is_original_cosponsor
+            }
+            for c in cosponsorships
         ]
     }
 
