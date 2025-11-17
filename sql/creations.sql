@@ -178,15 +178,19 @@ CREATE INDEX idx_bill_cosponsors_date ON bill_cosponsors(sponsorship_date);
 
 
 -- Create update_log table to track data updates
+/*
 CREATE TABLE update_log (
     log_id SERIAL PRIMARY KEY,
     table_name VARCHAR(50),
     last_update TIMESTAMP,
     records_updated INTEGER,
-    status VARCHAR(20)
+    status VARCHAR(20),
+    notes TEXT
 );
+*/
 
-
-
-
-
+-- Add notes column to existing update_log table (if needed)
+/*
+ALTER TABLE update_log
+ADD COLUMN IF NOT EXISTS notes TEXT;
+*/
