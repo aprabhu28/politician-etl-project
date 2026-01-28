@@ -9,6 +9,7 @@ from datetime import date
 
 from .database import get_db
 from .models import Politician, Donor, Donation, Bill, Vote, BillCosponsor
+from . import metrics
 
 # Create FastAPI application
 app = FastAPI(
@@ -16,6 +17,9 @@ app = FastAPI(
     description="API for querying US politicians, campaign donations, bills, and votes",
     version="1.0.0"
 )
+
+# Include metrics router
+app.include_router(metrics.router)
 
 
 @app.get("/")

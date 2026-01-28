@@ -112,3 +112,37 @@ class Vote(Base):
     # Relationships
     bill = relationship("Bill", back_populates="votes")
     politician = relationship("Politician", back_populates="votes")
+
+
+class Committee(Base):
+    """Model for the committees table."""
+    __tablename__ = "committees"
+
+    committee_id = Column(String(20), primary_key=True)
+    name = Column(String(255), nullable=False)
+    chamber = Column(String(10))  # 'house', 'senate', or 'joint'
+    type = Column(String(20))  # 'standing', 'select', 'special', or 'joint'
+    url = Column(String(500))
+    parent_committee_id = Column(String(20), ForeignKey("committees.committee_id"))
+    thomas_id = Column(String(20))
+    
+    # Relationships
+    members = relationship("CommitteeAssignment", back_populates="committee")
+    subcommittees = relationship("Committee", backref="parent_committee", remote_side=[committee_id])
+
+
+class CommitteeAssignment(Base):
+    """Model for the committee_assignments junction table."""
+    __tablename__ = "committee_assignments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    politician_id = Column(Integer, ForeignKey("politicians.politician_id"), nullable=False)
+    committee_id = Column(String(20), ForeignKey("committees.committee_id"), nullable=False)
+    rank = Column(Integer)
+    role = Column(String(50))  # 'Chair', 'Ranking Member', 'Member', etc.
+    party = Column(String(20))  # 'majority' or 'minority'
+    congress = Column(Integer, nullable=False)
+    
+    # Relationships
+    politician = relationship("Politician")
+    committee = relationship("Committee", back_populates="members")

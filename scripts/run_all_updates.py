@@ -12,11 +12,10 @@ SCRIPTS_DIR = Path(__file__).parent
 
 # Define update scripts in order of execution
 UPDATE_SCRIPTS = [
-    ("update_bills.py", "Bills", "Updates recently introduced bills"),
-    ("update_bill_sponsors.py", "Bill Sponsors", "Updates sponsor_id for new bills"),
-    #("update_cosponsors.py", "Bill Cosponsors", "Updates cosponsors for recent bills"),
+    ("update_bills.py", "Bills", "Updates recently introduced bills from congress repo XML"),
+    ("update_sponsors_cosponsors.py", "Sponsors & Cosponsors", "Updates sponsors and cosponsors from congress repo XML"),
     ("update_votes.py", "Votes", "Processes new vote data files"),
-    # ("update_donations.py", "Donations", "Downloads and processes latest FEC data"),  # Skipped - run manually when needed
+    ("update_donations.py", "Donations", "Downloads and processes latest FEC data")
 ]
 
 

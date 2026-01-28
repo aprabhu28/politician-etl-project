@@ -14,4 +14,5 @@ data/
 # Pictures
 pictures/
 
-# Markdowns
+# tree
+*.txt

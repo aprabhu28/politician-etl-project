@@ -194,3 +194,42 @@ CREATE TABLE update_log (
 ALTER TABLE update_log
 ADD COLUMN IF NOT EXISTS notes TEXT;
 */
+
+
+-- ===============================================
+-- COMMITTEES AND COMMITTEE ASSIGNMENTS TABLES
+-- ===============================================
+
+-- 1. The 'committees' table
+-- Supports both top-level committees and subcommittees
+CREATE TABLE committees (
+    committee_id VARCHAR(20) PRIMARY KEY,  -- e.g., 'HSAG' or 'HSAG01' for subcommittee
+    name VARCHAR(255) NOT NULL,
+    chamber VARCHAR(10),  -- 'house', 'senate', or 'joint'
+    type VARCHAR(20),  -- 'standing', 'select', 'special', or 'joint'
+    url VARCHAR(500),
+    parent_committee_id VARCHAR(20),  -- NULL if top-level, else links to parent
+    thomas_id VARCHAR(20),  -- Legacy Thomas ID
+    
+    -- Foreign key for subcommittees linking to parent
+    FOREIGN KEY (parent_committee_id) REFERENCES committees(committee_id)
+);
+
+-- 2. The 'committee_assignments' junction table
+-- Links politicians to committees with their roles
+CREATE TABLE committee_assignments (
+    id SERIAL PRIMARY KEY,
+    politician_id INTEGER NOT NULL,
+    committee_id VARCHAR(20) NOT NULL,
+    rank INTEGER,
+    role VARCHAR(50),  -- 'Chair', 'Ranking Member', 'Member', etc.
+    party VARCHAR(20),  -- 'majority' or 'minority'
+    congress INTEGER NOT NULL,
+    
+    -- Foreign keys
+    FOREIGN KEY (politician_id) REFERENCES politicians(politician_id),
+    FOREIGN KEY (committee_id) REFERENCES committees(committee_id),
+    
+    -- Unique constraint: one politician can only have one assignment per committee per congress
+    UNIQUE (politician_id, committee_id, congress)
+);
