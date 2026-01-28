@@ -1,4 +1,4 @@
-# Politicians ETL PostgreSQL Project
+# Politicians ETL Project
 
 A comprehensive data pipeline and analytics platform for tracking U.S. politicians, legislation, campaign finance, and voting records. This project combines ETL processes, PostgreSQL database management, BigQuery analytics, and semantic search capabilities to provide deep insights into political activities.
 
